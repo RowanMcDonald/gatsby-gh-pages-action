@@ -7,48 +7,16 @@ const ioUtil = require("@actions/io/lib/io-util")
 async function run() {
   try {
     const accessToken = core.getInput("access-token", { required: true })
-    if (!accessToken) {
-      core.setFailed(
-        "No personal access token found. Please provide one by setting the `access-token` input for this action."
-      )
-      return
-    }
 
-    let deployBranch = core.getInput("deploy-branch")
-    if (!deployBranch) deployBranch = "master"
+    let deployBranch = "master"
 
-    if (github.context.ref === `refs/heads/${deployBranch}`) {
-      console.log(`Triggered by branch used to deploy: ${github.context.ref}.`)
-      console.log("Nothing to deploy.")
-      return
-    }
+    await exec.exec(`${pkgManager} run build`, [])
 
-    const pkgManager = (await ioUtil.exists("./yarn.lock")) ? "yarn" : "npm"
-    console.log(`Installing your site's dependencies using ${pkgManager}.`)
-    await exec.exec(`${pkgManager} install`)
-    console.log("Finished installing dependencies.")
+    await io.cp("./CNAME", "./public/CNAME", { force: true })
 
-    const gatsbyArgs = core.getInput("gatsby-args")
-    console.log("Ready to build your Gatsby site!")
-    console.log(`Building with: ${pkgManager} run build ${gatsbyArgs}`)
-    await exec.exec(`${pkgManager} run build`, [gatsbyArgs])
-    console.log("Finished building your site.")
-
-    const cnameExists = await ioUtil.exists("./CNAME")
-    if (cnameExists) {
-      console.log("Copying CNAME over.")
-      await io.cp("./CNAME", "./public/CNAME", { force: true })
-      console.log("Finished copying CNAME.")
-    }
-
-    const deployRepo = core.getInput("deploy-repo")
-    const repo = `${github.context.repo.owner}/${deployRepo || github.context.repo.repo}`
+    const repo = `${github.context.repo.owner}/${github.context.repo.repo}`
     const repoURL = `https://${accessToken}@github.com/${repo}.git`
-    console.log("Ready to deploy your new shiny site!")
-    console.log(`Deploying to repo: ${repo} and branch: ${deployBranch}`)
-    console.log(
-      "You can configure the deploy branch by setting the `deploy-branch` input for this action."
-    )
+
     await exec.exec(`git init`, [], { cwd: "./public" })
     await exec.exec(`git config user.name`, [github.context.actor], {
       cwd: "./public",
@@ -67,8 +35,8 @@ async function run() {
     await exec.exec(`git push`, ["-f", repoURL, `master:${deployBranch}`], {
       cwd: "./public",
     })
-    console.log("Finished deploying your site.")
 
+    console.log("Finished deploying my blog.")
     console.log("Enjoy! ✨")
   } catch (error) {
     core.setFailed(error.message)
