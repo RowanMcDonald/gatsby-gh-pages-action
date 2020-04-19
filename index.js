@@ -6,7 +6,7 @@ const ioUtil = require("@actions/io/lib/io-util")
 
 async function run() {
   try {
-    const accessToken = core.getInput("access-token")
+    const accessToken = core.getInput("access-token", { required: true })
     if (!accessToken) {
       core.setFailed(
         "No personal access token found. Please provide one by setting the `access-token` input for this action."
