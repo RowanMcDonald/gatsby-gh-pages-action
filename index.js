@@ -10,7 +10,7 @@ async function run() {
 
     let deployBranch = "master"
 
-    await exec.exec(`${pkgManager} run build`, [])
+    await exec.exec(`yarn run build`, [])
 
     await io.cp("./CNAME", "./public/CNAME", { force: true })
 
